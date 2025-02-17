@@ -1,0 +1,1 @@
+sudo docker run -e CLIENT_TOKEN='<client token>' -e SECONDARY_CHANNEL='<secondary channel id>' -e GENERAL_CHANNEL='<general channel id>' -e OPEN_AI_KEY=<open ai key> -e GUILD_ID='<guild id>' iris-assistant:v1

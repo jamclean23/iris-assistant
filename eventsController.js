@@ -8,7 +8,158 @@ const OpenAi = require('openai');
 
 // ====== FUNCTIONS ======
 
-async function newVCHandler (client, newState, oldState) {
+async function addPoliticsHandler (event, user, client) {
+    const guild = await client.guilds.fetch(event.message.guildId);
+
+    // Check for event validity
+    if (
+        !event ||
+        !(typeof event == 'object')
+    ) {
+        console.log('Bad or null event in addPoliticsHandler');
+        return;
+    };
+
+    // Check for message validity
+    if (
+        !event.message ||
+        !(typeof event.message == 'object') ||
+        !event.message.channelId ||
+        !event.message.id
+    ) {
+        console.log('Bad or null message in addPoliticsHandler');
+        return;
+    };    
+
+    // Check if reaction was for the politics react message
+    if (
+        !(event.message.channelId == process.env.POL_RULES_CHANNEL) ||
+        !(event.message.id == process.env.POL_RULES_MESSAGE)
+    ) {
+        return;
+    };
+
+    // Check for "accept" Emoji
+    if (
+        !(event._emoji.name ==  process.env.POL_ACCEPT_EMOJI)
+    ) {
+        //  Refresh political message cache to get updated reactions
+        await refreshPolMessageCache(client);
+        
+        // Remove all reactions that are not the "accepted" emoji
+        event.message.reactions.cache.forEach((reaction) => {
+            if (
+                reaction._emoji.name != process.env.POL_ACCEPT_EMOJI
+            ) {
+                (async () => {
+                    try {
+                        await reaction.remove();
+                    } catch (error) {
+                        console.trace();
+                        console.log(error);
+                    };    
+                })();
+            };
+        });
+        return;
+    };
+
+    // If accepted emoji, give user politics role
+    if (
+        (event._emoji.name ==  process.env.POL_ACCEPT_EMOJI)
+    ) { 
+        // Get the role
+        let polRole;
+        try {
+            polRole = await guild.roles.cache.find((role) => {
+                return role.name == process.env.POL_ROLE_NAME;
+            });
+        } catch (e) {
+            console.trace();
+            console.log('Error fetching politics role');
+            console.log(e);
+        };
+
+        // Add to user
+        try {
+            const currentUser = await guild.members.fetch(user.id);
+            await currentUser.roles.add(polRole);
+        } catch (e) {
+            console.trace();
+            console.log('Error adding role to user');
+            console.log(e);
+        };
+    };
+}
+
+async function removePoliticsHandler (event, user, client) {
+    const guild = await client.guilds.fetch(event.message.guildId);
+
+    // Check for event validity
+    if (
+        !event ||
+        !(typeof event == 'object')
+    ) {
+        console.log('Bad or null event in addPoliticsHandler');
+        return;
+    };
+
+    // Check for message validity
+    if (
+        !event.message ||
+        !(typeof event.message == 'object') ||
+        !event.message.channelId ||
+        !event.message.id
+    ) {
+        console.log('Bad or null message in addPoliticsHandler');
+        return;
+    };    
+
+    // Check if reaction was for the politics react message
+    if (
+        !(event.message.channelId == process.env.POL_RULES_CHANNEL) ||
+        !(event.message.id == process.env.POL_RULES_MESSAGE)
+    ) {
+        return;
+    };
+
+    // Check for "accept" Emoji
+    if (
+        !(event._emoji.name ==  process.env.POL_ACCEPT_EMOJI)
+    ) {
+        return;
+    };
+
+    // If accepted emoji, remove user politics role
+    if (
+        (event._emoji.name ==  process.env.POL_ACCEPT_EMOJI)
+    ) { 
+        // Get the role
+        let polRole;
+        try {
+            polRole = await guild.roles.cache.find((role) => {
+                return role.name == process.env.POL_ROLE_NAME;
+            });
+        } catch (e) {
+            console.trace();
+            console.log('Error fetching politics role');
+            console.log(e);
+        };
+
+        // Add to user
+        try {
+            const currentUser = await guild.members.fetch(user.id);
+            await currentUser.roles.remove(polRole);
+        } catch (e) {
+            console.trace();
+            console.log('Error adding role to user');
+            console.log(e);
+        };
+    };
+}
+
+async function newVCHandler (client, newState, oldState) {  
+
     createChannel();
     async function createChannel () {
         if (
@@ -238,6 +389,11 @@ function messageHandler (client, msg) {
 
 // Auxillary functions. These are not exported, but are used by functions that are.
 
+async function refreshPolMessageCache (client) {
+    const channel = await client.channels.fetch(process.env.POL_RULES_CHANNEL);
+    await channel.messages.fetch(process.env.POL_RULES_MESSAGE);    
+};
+
 /**
  * 
  * @param {String} msg - String to be analyzed 
@@ -283,6 +439,8 @@ function sendToSecondary(client, msg) {
 module.exports = {
     readyHandler,
     messageHandler,
-    newVCHandler
+    newVCHandler,
+    addPoliticsHandler,
+    removePoliticsHandler
 }
 

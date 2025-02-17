@@ -1,3 +1,4 @@
 .env
 node_modules
 iris-assistant.tar
+start-bot.sh

@@ -13,11 +13,14 @@ const client = new Discord.Client({
         Discord.GatewayIntentBits.GuildMessages,
         Discord.GatewayIntentBits.MessageContent,
         Discord.GatewayIntentBits.GuildMembers,
-        Discord.GatewayIntentBits.GuildVoiceStates
-    ]
+        Discord.GatewayIntentBits.GuildVoiceStates,
+        Discord.GatewayIntentBits.GuildMessageReactions
+    ],
+    partials: ['MESSAGE', 'CHANNEL', 'REACTION']
 });
 
 // Controllers
+const init = require('./init.js');
 const eventsController = require('./eventsController.js');
 
 // ====== FUNCTIONS ======
@@ -25,6 +28,7 @@ const eventsController = require('./eventsController.js');
 function main (client) {
     client.once(Discord.Events.ClientReady, () => {
         eventsController.readyHandler(client);
+        init(client);
     });
 
     client.on(Discord.Events.MessageCreate, (msg) => {
@@ -35,7 +39,16 @@ function main (client) {
         eventsController.newVCHandler(client, oldState, newState);
     });
 
+    client.on(Discord.Events.MessageReactionAdd, (event, user) => {
+        eventsController.addPoliticsHandler(event, user, client);
+    });
+
+    client.on(Discord.Events.MessageReactionRemove, (event, user) => {
+        eventsController.removePoliticsHandler(event, user, client);
+    });    
+
     client.login(process.env.CLIENT_TOKEN);
+
 
 
     // This function prevents Sushi from changing his nickname
